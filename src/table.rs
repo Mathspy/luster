@@ -68,6 +68,26 @@ impl<'gc> Table<'gc> {
     }
 }
 
+pub struct TableIterator<'gc>(std::collections::hash_map::IntoIter<TableKey<'gc>, Value<'gc>>);
+
+impl<'gc> Iterator for TableIterator<'gc> {
+    type Item = (Value<'gc>, Value<'gc>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.0.next()?;
+        Some(((next.0).0, next.1))
+    }
+}
+
+impl<'gc> IntoIterator for Table<'gc> {
+    type Item = (Value<'gc>, Value<'gc>);
+    type IntoIter = TableIterator<'gc>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        TableIterator(self.0.read().map.clone().into_iter())
+    }
+}
+
 #[derive(Debug, Collect, Default)]
 #[collect(empty_drop)]
 pub struct TableState<'gc> {
@@ -255,7 +275,7 @@ impl<'gc> TableState<'gc> {
 }
 
 // Value which implements Hash and Eq, and cannot contain Nil or NaN values.
-#[derive(Debug, Collect, PartialEq)]
+#[derive(Debug, Clone, Collect, PartialEq)]
 #[collect(empty_drop)]
 struct TableKey<'gc>(Value<'gc>);
 
